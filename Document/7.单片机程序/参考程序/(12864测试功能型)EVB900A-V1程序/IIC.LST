@@ -1,0 +1,25 @@
+C51 COMPILER V7.50   IIC                                                                   09/09/2010 22:36:57 PAGE 1   
+
+
+C51 COMPILER V7.50, COMPILATION OF MODULE IIC
+OBJECT MODULE PLACED IN IIC.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE IIC.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          
+   2          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

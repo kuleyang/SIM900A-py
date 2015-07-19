@@ -1,0 +1,192 @@
+C51 COMPILER V7.09   DS18B20                                                               09/16/2011 03:31:18 PAGE 1   
+
+
+C51 COMPILER V7.09, COMPILATION OF MODULE DS18B20
+OBJECT MODULE PLACED IN DS18B20.OBJ
+COMPILER INVOKED BY: E:\Keil\C51\BIN\C51.EXE DS18B20.c DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /**************************************************************************
+   2           * EVB900A-V1¿ª·¢°åÊµÑé³ÌÐò                                              *
+   3           * °æ±¾£º (C) Copyright 2010,SC.etc,DCL,CHM    All Rights reserved.      *
+   4           * ÍøÕ¾£º mcuep.taobao.com                            *
+   5           * ÓÊÏä£º dcl0@sina.com                                                  *
+   6           * ×÷Õß£º DCL,CHM
+   7           * À´Ô´£º Ë¼´´µç×Ó  Xa' STrong ELECTRONICS CO.,LTD      *
+   8           *¡¾°æÈ¨¡¿Copyright(A) Ë¼´´µç×Ó mcuep.taobao.com  All Rights Reserved    *
+   9           *¡¾ÉùÃ÷¡¿´Ë³ÌÐò½öÓÃÓÚÑ§Ï°Óë²Î¿¼£¬ÒýÓÃÇë×¢Ã÷°æÈ¨ºÍ×÷ÕßÐÅÏ¢£¡             *
+  10           *************************************************************************/
+  11          //DS18B20¶ÁÎÂ¶È³ÌÐò£¬¹Òµ¥¸öÐ¾Æ¬¡£
+  12          //ÕâÀïÒÔ11.0592M¾§ÌåÎªÀý£¬²»Í¬µÄ¾§ÌåËÙ¶È¿ÉÄÜÐèÒªµ÷ÕûÑÓÊ±µÄÊ±¼ä
+  13          //sbit DQ =P1^0;         ¸ù¾ÝÊµ¼ÊÇé¿ö¶¨Òå¶Ë¿Ú
+  14          #include "C8051F340.H"     //µ÷ÓÃÍ·ÎÄ¼þ£¨µ¥Æ¬»úÄÚ²¿µÄ¼Ä´æÆ÷¶¨Òå£
+  15          #include "intrins.h"
+  16          #include "math.h"
+  17          
+  18          sbit DQ           =   P3^7;//18B20-1
+  19          bit isExternPower;
+  20          
+  21          //sbit B20-DQ1      =   P4^7;//18B20-1
+  22          //sbit B20-DQ2      =   P4^6;//18B20-1
+  23          /*****************ÑÓÊ±**********/
+  24          void DS18B20_1us(unsigned int us)  //Ô¼1us  ---¾§Õñ48MHZ
+  25          {  
+  26   1          while (us)
+  27   1       {
+  28   2         _nop_(); _nop_(); _nop_(); _nop_(); _nop_();_nop_();_nop_(); _nop_(); _nop_(); _nop_(); _nop_(); _nop_(
+             -); _nop_(); _nop_();_nop_();
+  29   2         --us;
+  30   2       }
+  31   1       
+  32   1      }
+  33          /*****************¸´Î»**********/
+  34          unsigned char Init_DS18B20(void)
+  35          {
+  36   1        unsigned char i,presence;
+  37   1      
+  38   1        Clr_DQ();                    // pull DQ line low
+*** WARNING C206 IN LINE 38 OF DS18B20.C: 'Clr_DQ': missing function-prototype
+  39   1        DS18B20_1us(467);
+  40   1        Set_DQ();                    // allow line to return high
+*** WARNING C206 IN LINE 40 OF DS18B20.C: 'Set_DQ': missing function-prototype
+  41   1        DS18B20_1us(15);
+  42   1          DS18B20_1us(200);
+  43   1              presence = DQ;             // Èç¹û=0Ôò³õÊ¼»¯³É¹¦ =1Ôò³õÊ¼»¯Ê§°Ü 
+  44   1        for (i=0;i<30;i++)           //240us
+  45   1        DS18B20_1us(15);
+  46   1        return(presence);            // 0=presence, 1 = no part
+  47   1      }                 
+  48          /*******Ïò 1-WIRE ×ÜÏßÉÏÐ´Ò»¸ö×Ö½Ú**********/
+  49          void write_byte(unsigned char dat)
+  50          {
+  51   1        unsigned char i;
+  52   1        EA=0;
+C51 COMPILER V7.09   DS18B20                                                               09/16/2011 03:31:18 PAGE 2   
+
+  53   1        Set_DQ();           
+  54   1        DS18B20_1us(1);
+  55   1        DS18B20_1us(10);
+  56   1        for (i=8; i>0; i--)   // writes byte, one bit at a time
+  57   1        {
+  58   2          
+  59   2          Clr_DQ();           // pull DQ low to start timeslot
+  60   2              DS18B20_1us(15);
+  61   2          if((dat&0x01)==1){Set_DQ();}
+  62   2          DS18B20_1us(50);    // hold value for remainder of timeslot
+  63   2          Set_DQ();
+  64   2          dat>>=1;
+  65   2              DS18B20_1us(1);
+  66   2        }
+  67   1        EA=1;
+  68   1      }
+  69          /*******´Ó 1-wire ×ÜÏßÉÏ¶ÁÈ¡Ò»¸ö×Ö½Ú**********/
+  70          unsigned char read_byte(void)
+  71          {
+  72   1        unsigned char i;
+  73   1        unsigned char value = 0;
+  74   1        EA=0;
+  75   1        Set_DQ();           
+  76   1        DS18B20_1us(1);
+  77   1        for (i=8;i>0;i--)
+  78   1        {   
+  79   2          Clr_DQ();           // ¸øÂö³åÐÅºÅ
+  80   2              DS18B20_1us(5);
+  81   2          Set_DQ();           // ¸øÂö³åÐÅºÅ
+  82   2               
+  83   2              DS18B20_1us(1);
+  84   2          value>>=1;
+  85   2          if((DQ)==0x80)value|=0x80;
+  86   2          DS18B20_1us(60);    // wait for rest of timeslot
+  87   2      
+  88   2        }
+  89   1        EA=1;
+  90   1        return(value);
+  91   1      }
+  92          /******************************************************
+  93          º¯Êý¹¦ÄÜ£ºÆô¶¯ÎÂ¶È×ª»»
+  94          *******************************************************/
+  95          void Convert_T()
+  96          {
+  97   1        unsigned char pre=1;
+  98   1      
+  99   1        while(pre==1)
+ 100   1        {
+ 101   2          pre=Init_DS18B20(); //DS18B20¸´Î»
+ 102   2        }
+ 103   1        write_byte(0xCC);  //Ìø¹ý¶ÁÐòºÅÁÐºÅµÄ²Ù×÷
+ 104   1        write_byte(0x44);  //Ð´Èë44HÃüÁî£¬Æô¶¯ÎÂ¶È×ª»» 
+ 105   1      }
+ 106          /******************************************************
+ 107          º¯Êý¹¦ÄÜ£ºµçÔ´¹¤×÷·½Ê½
+ 108          *******************************************************/
+ 109          bit Read_Power_Supply()
+ 110          {
+ 111   1        write_byte(0xB4);
+ 112   1        DS18B20_1us(100); //·¢¶ÁÈ¡µçÔ´¹¤×÷·½Ê½Ö¸Áî
+ 113   1        if(DQ){
+ 114   2          isExternPower=1; //ÊÇÍâ²¿µçÔ´¹©µç
+C51 COMPILER V7.09   DS18B20                                                               09/16/2011 03:31:18 PAGE 3   
+
+ 115   2        
+ 116   2        }else{
+ 117   2        
+ 118   2         isExternPower=0; //ÊÇ¼ÄÉúµçÔ´
+ 119   2        }
+ 120   1        return isExternPower;
+ 121   1      
+ 122   1      }
+ 123          /******************************************************
+ 124          º¯Êý¹¦ÄÜ£ºÌø¹ýROM±àÂëÖ¸Áî
+ 125          *******************************************************/
+ 126          void Skip_ROM()
+ 127          {  
+ 128   1        unsigned char pre=1;
+ 129   1      
+ 130   1        while(pre==1)
+ 131   1        {
+ 132   2          pre=Init_DS18B20(); //DS18B20¸´Î»
+ 133   2        }
+ 134   1        write_byte(0xCC); //ÓÉÓÚÔÚ±¾ÊµÑéÖÐÖ»ÓÃÒ»¸ö18B20,ËùÒÔ²»ÐèÒª¹ØÓÚROMµÄÖ¸Áî£¬µ÷ÓÃ´ËÖ¸Áî£¬Ìø¹ýROMµÄÏà¹Ø²Ù×÷
+ 135   1      }
+ 136          /*******¶ÁÈ¡ÎÂ¶È**********/
+ 137          unsigned int Read_Temperature(void)
+ 138          {
+ 139   1      
+ 140   1         unsigned char a=0;
+ 141   1         unsigned char b=0;      
+ 142   1         float temper=0;
+ 143   1      
+ 144   1         Convert_T();      // Skip ROM and Start Conversion
+ 145   1         Skip_ROM();       //Skip ROM-->Ìø¹ý¶ÁÐòºÅÁÐºÅµÄ²Ù×÷ÇÒÆô¶¯ÎÂ¶È×ª»»
+ 146   1         write_byte(0xBE); // Read Scratch Pad-->¶ÁÈ¡ÎÂ¶È¼Ä´æÆ÷µÈ£¨¹²¿É¶Á9¸ö¼Ä´æÆ÷£© Ç°Á½¸ö¾ÍÊÇÎÂ¶È
+ 147   1         a = read_byte();  //¶ÁµÍÎ»
+ 148   1         b = read_byte();  //¶Á¸ßÎ»
+ 149   1         
+ 150   1         temper=a+b*256;
+ 151   1         
+ 152   1         if (temper==0xFFFF) return 0xFFFF;
+ 153   1         if (temper>0x8000) 
+ 154   1         {
+ 155   2           temper=-temper;
+ 156   2           return (0x8000+temper*5/8);
+ 157   2         }
+ 158   1         else
+ 159   1         return (temper*5/8);
+ 160   1      }
+ 161          
+ 162          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    459    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       9
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

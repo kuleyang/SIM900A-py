@@ -1,0 +1,6 @@
+"main.obj",
+"LC1602.obj",
+"LC12864.obj",
+"DS18B20.obj" 
+TO "car_ctr" 
+RAMSIZE(256) 

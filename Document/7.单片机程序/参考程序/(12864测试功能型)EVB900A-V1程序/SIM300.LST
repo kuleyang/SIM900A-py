@@ -1,0 +1,250 @@
+C51 COMPILER V7.50   SIM300                                                                09/11/2010 12:33:12 PAGE 1   
+
+
+C51 COMPILER V7.50, COMPILATION OF MODULE SIM300
+OBJECT MODULE PLACED IN SIM300.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE SIM300.C DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "C8051F020.h"
+   2          #include "SIM300.h"
+   3          
+   4          //AT指令表
+   5          unsigned char code AT[]                 ="AT";                          //握手信号
+*** ERROR C279 IN LINE 5 OF SIM300.C: 'AT': multiple initialization
+   6          unsigned char code ATI[]                ="ATI";                         //设备初始化
+*** ERROR C279 IN LINE 6 OF SIM300.C: 'ATI': multiple initialization
+   7          unsigned char code ATE0V1[]             ="ATE0V1";                      //关回显设置命令返回OK/V1 0/V0
+*** ERROR C279 IN LINE 7 OF SIM300.C: 'ATE0V1': multiple initialization
+   8          unsigned char code AT_IPR[]             ="AT+IPR=9600";         //波特率设置
+*** ERROR C279 IN LINE 8 OF SIM300.C: 'AT_IPR': multiple initialization
+   9          unsigned char code AT_CPIN[]    ="AT+CPIN?";            //查询SIM卡状态
+*** ERROR C279 IN LINE 9 OF SIM300.C: 'AT_CPIN': multiple initialization
+  10          unsigned char code AT_CSQ[]     ="AT+CSQ";                      //查询信号
+*** ERROR C279 IN LINE 10 OF SIM300.C: 'AT_CSQ': multiple initialization
+  11          unsigned char code ATH[]                ="ATH";                         //呼叫挂起
+*** ERROR C279 IN LINE 11 OF SIM300.C: 'ATH': multiple initialization
+  12          unsigned char code AT_COPS[]    ="AT+COPS?";            //查询网络运营商
+*** ERROR C279 IN LINE 12 OF SIM300.C: 'AT_COPS': multiple initialization
+  13          unsigned char code AT_CDSNORIP[]="AT+CDNSORIP=0";       //GPRS IP 方式
+*** ERROR C279 IN LINE 13 OF SIM300.C: 'AT_CDSNORIP': multiple initialization
+  14          unsigned char code AT_CIPHEAD[] ="AT+CIPHEAD=1";        //GPRS 接收方式
+*** ERROR C279 IN LINE 14 OF SIM300.C: 'AT_CIPHEAD': multiple initialization
+  15          unsigned char code AT_CIPSTART[]="AT+CIPSTART=\"TCP\",\"122.234.240.62\",\"1001\"";//GPRS连接方式\GPRS连接
+             -地址(根据用户实际IP修改)\GPRS连接的端口
+*** ERROR C279 IN LINE 15 OF SIM300.C: 'AT_CIPSTART': multiple initialization
+  16          unsigned char code AT_CIPSEND[] ="AT+CIPSEND";          //GPRS发送信息命令
+*** ERROR C279 IN LINE 16 OF SIM300.C: 'AT_CIPSEND': multiple initialization
+  17          unsigned char code AT_CIPCLOSE[]="AT+CIPCLOSE";         //TCP连接关闭
+*** ERROR C279 IN LINE 17 OF SIM300.C: 'AT_CIPCLOSE': multiple initialization
+  18          unsigned char code AT_CIPSHUT[] ="AT+CIPSHUT";          //GPRS连接关闭   
+*** ERROR C279 IN LINE 18 OF SIM300.C: 'AT_CIPSHUT': multiple initialization
+  19          unsigned char code ATA[]                ="ATA";                         //来电接听
+*** ERROR C279 IN LINE 19 OF SIM300.C: 'ATA': multiple initialization
+  20          
+  21          //定时TIMER0用
+  22          unsigned int   timercount;                      //50MS定时器,
+  23          unsigned char  timer_1S_cnt;
+  24          unsigned char  timer_10S_cnt;
+  25          unsigned char  timer_S_cnt;
+  26          
+  27          unsigned char idata SystemBuf[RxIn];  //储存出口接收数据 
+  28          unsigned char Rx=0;
+*** ERROR C279 IN LINE 28 OF SIM300.C: 'Rx': multiple initialization
+  29          unsigned char jump=0;
+*** ERROR C279 IN LINE 29 OF SIM300.C: 'jump': multiple initialization
+  30          
+  31          
+  32          
+  33          
+  34          //延时函数
+  35          void delayms(unsigned  int ii)//1ms延时函数
+  36          {
+  37   1              unsigned int i,x;
+C51 COMPILER V7.50   SIM300                                                                09/11/2010 12:33:12 PAGE 2   
+
+  38   1              for (x=0;x<ii;x++)
+  39   1              {
+  40   2                      for (i=0;i<100;i++);
+  41   2              }
+  42   1      }
+  43          void delay(unsigned int i)
+  44          {
+  45   1              while(i!=0)
+  46   1              {
+  47   2                  i--;
+  48   2              }
+  49   1      }
+  50          //信号强度
+  51          void Signal()
+  52          {
+  53   1              unsigned char k=0,q=0;
+  54   1      
+  55   1              Rx=0;
+  56   1              sendstring(AT_CSQ);
+  57   1              q=((SystemBuf[8]-48)*10+(SystemBuf[9]-48));
+  58   1              //信号范围
+  59   1              if              ((q>18)&&(q<=31))       k=4;
+  60   1              else if ((q>14)&&(q<=18))       k=3;
+  61   1              else if ((q>10)&&(q<=14))       k=2;
+  62   1              else if ((q>7 )&&(q<=10))       k=1;
+  63   1              else if ((q>31)||(q<=7))        k=0;
+  64   1              //信号条显示
+  65   1      }
+  66          /*********************************************************************
+  67           ** 函数名称: strsearch ()
+  68           ** 函数功能: 在指定的数组里连续找到相同的内容
+  69           ** 入口参数: ptr2要查找的内容, ptr1当前数组
+  70           ** 出口参数: 0-没有 找到   >1 查找到
+  71           *********************************************************************/
+  72          unsigned char strsearch(unsigned char *ptr2,unsigned char *ptr1_at)//查字符串*ptr2在*ptr1中的位置
+  73          //本函数是用来检查字符串*ptr2是否完全包含在*ptr1中
+  74          //返回:  0  没有找到
+  75          //1-255 从第N个字符开始相同
+  76          {
+  77   1              unsigned char i,j,k;
+  78   1              unsigned char flag;
+  79   1              if(ptr2[0]==0) return(0);
+  80   1              flag=0;
+  81   1              for(i=0,j=0;i<RxIn-2;i++)
+  82   1              {
+  83   2                      if(ptr1_at[i]==ptr2[j])
+  84   2                      {       //第一个字符相同
+  85   3                              for(k=i;k<RxIn-2;k++,j++)
+  86   3                              {
+  87   4                                      if(ptr2[j]==0)//比较正确
+  88   4                                              return(i+1);               //返回值是整数，不含0
+  89   4                                      if(ptr1_at[k]!=ptr2[j]) break;
+  90   4                              }
+  91   3                              j=0;
+  92   3                      }
+  93   2              }
+  94   1              return(0);
+  95   1      }
+  96          
+  97          /*********************************************************************************************************
+             -********
+  98          //////////////////////函数void sendstring(uchar *p);实现功能:通过串口发送字符串///////////////////////////
+C51 COMPILER V7.50   SIM300                                                                09/11/2010 12:33:12 PAGE 3   
+
+             -///////
+  99          **********************************************************************************************************
+             -*******/
+ 100          void sendstring(unsigned char *p)
+ 101          {
+ 102   1              while(*p)
+ 103   1              {
+ 104   2                      sendchar(*p);
+ 105   2                      p++;
+ 106   2              }
+ 107   1              sendchar(0x0D);
+ 108   1              sendchar(0x0A);
+ 109   1      }
+ 110          /*********************************************************************************************************
+             -********
+ 111          ////////////////////////////////函数void Delay_ms(unsigned int i);实现功能:进行毫秒延时///////////////////
+             -////////////////
+ 112          **********************************************************************************************************
+             -*******/
+ 113          void Delay_ms(unsigned int i)
+ 114          {
+ 115   1          unsigned int j,k;
+ 116   1              for (k=0;k<12;k++)
+ 117   1              {
+ 118   2                  for(;i>0;i--)
+ 119   2                      {
+ 120   3                      for(j=0;j<125;j++)
+ 121   3                      {;}
+ 122   3                      }
+ 123   2              }
+ 124   1      }
+ 125          //---延时S------------------------------
+ 126          void dmsec (unsigned int count)
+ 127          {
+ 128   1              unsigned int i;
+ 129   1              while (count)
+ 130   1              {
+ 131   2              i =300;
+ 132   2                      while (i>0) i--;
+ 133   2                      count--;
+ 134   2          }
+ 135   1      }
+ 136          /************************************************************************************************
+ 137          ********************************系统初始化*******************************************************
+ 138          ************************************************************************************************/
+ 139          
+ 140          /*********************************************************************************************************
+             -********
+ 141          实现功能:对TC35进行启动,开启TC35功能详述:单片机上是跟TC35的管脚(/GPRS_EN)加时长至少为100ms的低电平信号
+ 142          **********************************************************************************************************
+             -*******/
+ 143          void Start_GSM(void)
+ 144          {
+ 145   1              unsigned char i;
+ 146   1              GPRS_EN=0;
+*** ERROR C202 IN LINE 146 OF SIM300.C: 'GPRS_EN': undefined identifier
+ 147   1              for(i=0;i<=200;i++) dmsec(30);
+ 148   1          GPRS_EN=1;
+*** ERROR C202 IN LINE 148 OF SIM300.C: 'GPRS_EN': undefined identifier
+ 149   1      }
+ 150          /*********************************************************************************************************
+             -*********
+C51 COMPILER V7.50   SIM300                                                                09/11/2010 12:33:12 PAGE 4   
+
+ 151          ///////////////////函数void GSM_INIT(void);实现功能:初始化TC35模块///////////////////////////////
+ 152          **********************************************************************************************************
+             -********/
+ 153          void GSM_init(void)
+ 154          { 
+ 155   1              Delay_ms(5000);
+ 156   1              Delay_ms(5000);
+ 157   1              while(1)
+ 158   1              {
+ 159   2                      clear_SystemBuf();
+ 160   2                      sendstring(AT);
+ 161   2                      Delay_ms(5000); 
+ 162   2                      if((SystemBuf[5]=='O')&&(SystemBuf[6]=='K'))    //判断是否模块初始化成功,成功的话模块会回复"OK"给单片机
+ 163   2              {                                                                                               //如果单片机没有收到OK,就继续发送初始化指令/                 
+ 164   3                              //LED1=~LED1;   break; 
+ 165   3              }
+ 166   2                      Delay_ms(5000);
+ 167   2              }
+ 168   1              sendstring(ATI);//初始化
+ 169   1              Delay_ms(1000);
+ 170   1              sendstring(AT_IPR);//9600
+ 171   1              Delay_ms(1000);
+ 172   1              sendstring(ATE0V1);//关闭回显设置DCE为OK方式
+ 173   1              Delay_ms(1000);
+ 174   1              while(1)
+ 175   1              {
+ 176   2                      clear_SystemBuf();
+ 177   2                      sendstring(AT_CPIN);//查询SIM卡状态
+ 178   2                      Delay_ms(5000);
+ 179   2                      if((SystemBuf[18]=='O')&&(SystemBuf[19]=='K'))
+ 180   2                      { 
+ 181   3                      //      LED1=~LED1;break;
+ 182   3                      }
+ 183   2                      Delay_ms(5000);//READY??
+ 184   2              }
+ 185   1              //GPRS初始化
+ 186   1              sendstring(AT_CDSNORIP);Delay_ms(5000); 
+ 187   1              sendstring(AT_CIPHEAD); Delay_ms(5000);         
+ 188   1      }
+ 189          /*********************************************************************************************************
+             -*******/
+ 190          ///////////////////////////////////////void clear_SystemBuf();清除串口接收缓冲区//////////////////////////
+             -///////
+ 191          /*********************************************************************************************************
+             -*******/
+ 192          void clear_SystemBuf()
+ 193          {
+ 194   1              for(Rx=0;Rx<RxIn;Rx++)
+ 195   1              {
+ 196   2                      SystemBuf[Rx]=0x00;
+ 197   2              }
+ 198   1              Rx=0;
+ 199   1      }
+ 200          
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  19 ERROR(S)
