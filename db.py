@@ -55,7 +55,10 @@ def init():
         conn.rollback()
 
 def test():
-    cursor.execute('INSERT INTO toread (phone, message, time) values (%s, %s, %s)', ("18202725107", "Demo", "1436094706"))
+    cursor.execute('INSERT INTO sms.toread (phone, message, time) values (%s, %s, %s)', ("18202725107", "Demo", "1436094706"))
+    cursor.execute('INSERT INTO sms.read (phone, message, time) values (%s, %s, %s)', ("18202725107", "Demo", "1436094706"))
+    cursor.execute('INSERT INTO sms.sent (phone, message, time) values (%s, %s, %s)', ("18202725107", "Demo", "1436094706"))
+    cursor.execute('INSERT INTO sms.tosend (phone, message) values (%s, %s)', ("18202725107", "Demo"))
     conn.commit()
 
 
