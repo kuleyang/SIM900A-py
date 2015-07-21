@@ -16,7 +16,7 @@ def init():
         INDEX (`mid`)
         )ENGINE=InnoDB charset=utf8 collate=utf8_general_ci
         """)
-                
+
         cursor.execute("""
         CREATE TABLE `sms`.`sent`(
         `mid` int NOT NULL UNIQUE AUTO_INCREMENT,
@@ -27,7 +27,7 @@ def init():
         INDEX (`mid`)
         )ENGINE=InnoDB charset=utf8 collate=utf8_general_ci
         """)
-        
+
         cursor.execute("""
         CREATE TABLE `sms`.`toread`(
         `mid` int NOT NULL UNIQUE AUTO_INCREMENT,
@@ -38,7 +38,7 @@ def init():
         INDEX (`mid`)
         )ENGINE=InnoDB charset=utf8 collate=utf8_general_ci
         """)
-        
+
         cursor.execute("""
         CREATE TABLE `sms`.`read`(
         `mid` int NOT NULL UNIQUE AUTO_INCREMENT,
@@ -49,7 +49,7 @@ def init():
         INDEX (`mid`)
         )ENGINE=InnoDB charset=utf8 collate=utf8_general_ci
         """)
-        
+
         conn.commit()
     except:
         conn.rollback()
