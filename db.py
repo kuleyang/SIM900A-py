@@ -6,7 +6,7 @@ from mysql import connector
 def init():
     try:
         cursor.execute("""CREATE DATABASE IF NOT EXISTS sms DEFAULT CHARSET utf8 COLLATE utf8_general_ci""")
-        conn.select_db("sms")
+        #conn.select_db("sms")
         cursor.execute("""
         CREATE TABLE `sms`.`tosend`(
         `mid` int NOT NULL UNIQUE AUTO_INCREMENT,
@@ -67,6 +67,8 @@ if __name__ == '__main__':
     cursor = conn.cursor()
 
     try:
-        conn.select_db('sms')
-    except:
+        test()
+    except Exception as e:
+        print("It seems database not initialized")
         init()
+        test()

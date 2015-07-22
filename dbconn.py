@@ -2,34 +2,65 @@
 
 import mysql
 from mysql import connector
-
+import time
 
 def query_send():
-    n = db_cursor.execute("SELECT * FROM tosend")
-    new_dat = []
-    for row in db_cursor.fetchall():
-        print(row)
-        for r in row:
-            new_dat.append(r)
-        send_queue.append(new_dat)
-        new_dat = []
+    try:
+        db_cursor.execute("SELECT * FROM sms.tosend")
+    except Exception as e:
+        print(e.what())
+        return False
+    return db_cursor.fetchall()
+    # [(mid(int), 'phone', 'message'), (), (), ...]
 
-def confirm_send():
-    pass
+def confirm_send(sms, time):
+    # tm = str(time.time()).split('.')[0]
+    try:
+        db_cursor.execute("SELECT * FROM sms.tosend WHERE mid = " + str(sms[0]))
+        dt = db_cursor.fetchone()
+        if not dt:
+            return False
+        db_cursor.execute("INSERT INTO sms.sent (phone, message, time) VALUES(%s, %s, %s)", (sms[1], sms[2], time))
+        db_cursor.execute("DELETE FROM sms.tosend WHERE mid = " + str(dt[0]))
+    except Exception as e:
+        print(e.what())
+        return False
 
-def insert_recv():
-    pass
+    return True
+
+def insert_recv(phone, message, time):
+    try:
+        db_cursor.execute("INSERT INTO sms.toread (phone, message, time) VALUES (%s, %s, %s)", (phone, message, time))
+    except Exception as e:
+        print(e.what())
+        return False
+    return True
+
+def insert_tosend(phone, message, time):
+    try:
+        db_cursor.execute("INSERT INTO sms.tosend (phone, message) VALUES (%s, %s)", (phone, message))
+    except Exception as e:
+        print(e.what())
+        return False
+    return True
 
 if __name__ == "__main__":
     global send_queue = []
     global receive_queue = []
 
-    db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
-    db_cursor = db_conn.cursor()
-
     try:
-        db_conn.select_db('sms')
+        db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
+        db_cursor = db_conn.cursor()
     except Exception as e:
-        # init()
+        print(e.what())
         print("Fail to connect to server")
-        exit()
+
+    insert_recv("+8618202725107", "dbtest", str(time.time()).split('.')[0])
+    insert_tosend("+8618202725107", "dbtest2")
+    send_queue = query_send()
+    print(send_queue)
+
+    for x in send_queue:
+        print(x)
+        confirm_send(x, str(time.time()).split('.')[0])
+        time.sleep(1)
