@@ -113,13 +113,13 @@ if __name__ == "__main__":
     while True:
         receive_queue = s.receive()
         print(receive_queue)
-        send_queue = dbconn.query_send()
+        send_queue = dbconn.query_send(db_cursor)
         print(send_queue)
 
         if receive_queue:
             #Received Message
             for eachMessage in receive_queue:
-                dbconn.insert_recv(**eachMessage)
+                dbconn.insert_recv(db_cursor, **eachMessage)
                 print("Message Received: " + str(eachMessage))
 
         if send_queue:
@@ -127,7 +127,7 @@ if __name__ == "__main__":
                 stat = s.send(eachMessage[1], eachMessage[2])
                 if stat:
                     print("Success Send: " + str(eachMessage))
-                    dbconn.confirm_send(eachMessage, str(time.time()).split('.')[0])
+                    dbconn.confirm_send(db_cursor, eachMessage, str(time.time()).split('.')[0])
                 else:
                     print("Fail to Send: " + str(eachMessage))
 

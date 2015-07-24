@@ -4,7 +4,7 @@ import mysql
 from mysql import connector
 import time
 
-def query_send():
+def query_send(db_cursor):
     try:
         db_cursor.execute("SELECT * FROM sms.tosend")
     except Exception as e:
@@ -15,7 +15,7 @@ def query_send():
 
 
 
-def confirm_send(sms, time):
+def confirm_send(db_cursor, sms, time):
     # tm = str(time.time()).split('.')[0]
     try:
         db_cursor.execute("SELECT * FROM sms.tosend WHERE mid = " + str(sms[0]))
@@ -30,7 +30,7 @@ def confirm_send(sms, time):
 
     return True
 
-def insert_recv(phone, time, message):
+def insert_recv(db_cursor, phone, time, message):
     try:
         db_cursor.execute("INSERT INTO sms.toread (phone, message, time) VALUES (%s, %s, %s)", (phone, message, time))
     except Exception as e:
@@ -39,7 +39,7 @@ def insert_recv(phone, time, message):
     return True
 
 # call by server
-def insert_tosend(phone, message):
+def insert_tosend(db_cursor, phone, message):
     try:
         db_cursor.execute("INSERT INTO sms.tosend (phone, message) VALUES (%s, %s)", (phone, message))
     except Exception as e:
