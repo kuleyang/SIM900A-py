@@ -13,6 +13,8 @@ def query_send():
     return db_cursor.fetchall()
     # [(mid(int), 'phone', 'message'), (), (), ...]
 
+
+
 def confirm_send(sms, time):
     # tm = str(time.time()).split('.')[0]
     try:
@@ -28,7 +30,7 @@ def confirm_send(sms, time):
 
     return True
 
-def insert_recv(phone, message, time):
+def insert_recv(phone, time, message):
     try:
         db_cursor.execute("INSERT INTO sms.toread (phone, message, time) VALUES (%s, %s, %s)", (phone, message, time))
     except Exception as e:
@@ -36,7 +38,8 @@ def insert_recv(phone, message, time):
         return False
     return True
 
-def insert_tosend(phone, message, time):
+# call by server
+def insert_tosend(phone, message):
     try:
         db_cursor.execute("INSERT INTO sms.tosend (phone, message) VALUES (%s, %s)", (phone, message))
     except Exception as e:
@@ -44,9 +47,35 @@ def insert_tosend(phone, message, time):
         return False
     return True
 
+"""
+def threadcall():
+    try:
+        db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
+        db_cursor = db_conn.cursor()
+    except Exception as e:
+        print("Fail to connect")
+        exit()
+    print("Successful connect to mysql server")
+
+    while True:
+        time.sleep(5)
+
+        #log
+        if not flag_sending:
+            send_queue = query_send()
+        # [(mid(int), 'phone', 'message'), (), (), ...]
+
+        if not flag_reading:
+            for eachSMS in receive_queue:
+"""
+
 if __name__ == "__main__":
-    global send_queue = []
-    global receive_queue = []
+    global flag_sending
+    global flag_loading
+    global send_queue
+    global receive_queue
+    send_queue = []
+    receive_queue = []
 
     try:
         db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
