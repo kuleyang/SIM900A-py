@@ -8,7 +8,7 @@ def query_send():
     try:
         db_cursor.execute("SELECT * FROM sms.tosend")
     except Exception as e:
-        print(e.what())
+        print(e)
         return False
     return db_cursor.fetchall()
     # [(mid(int), 'phone', 'message'), (), (), ...]
@@ -25,7 +25,7 @@ def confirm_send(sms, time):
         db_cursor.execute("INSERT INTO sms.sent (phone, message, time) VALUES(%s, %s, %s)", (sms[1], sms[2], time))
         db_cursor.execute("DELETE FROM sms.tosend WHERE mid = " + str(dt[0]))
     except Exception as e:
-        print(e.what())
+        print(e)
         return False
 
     return True
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
         db_cursor = db_conn.cursor()
     except Exception as e:
-        print(e.what())
+        print(e)
         print("Fail to connect to server")
 
     insert_recv("+8618202725107", "dbtest", str(time.time()).split('.')[0])

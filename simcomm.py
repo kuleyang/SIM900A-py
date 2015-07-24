@@ -3,10 +3,12 @@
 import serial
 import time
 import binascii
+import mysql
+from mysql import connector
 
 import dbconn
 
-def class connector:
+class connector:
     def __init__(self, port = "/dev/ttyUSB0", bound = 115200, timeout = 1):
         try:
             self.se = serial.Serial(port, bound,
@@ -86,7 +88,7 @@ def class connector:
                 except IndexError as e:
                     continue
 
-        if (delete = True):
+        if delete:
             self.se.write(b"AT+CMGDA=\"DEL ALL\"\r\n")
             time.sleep(0.1)
             self.se.flushInput()
@@ -101,7 +103,7 @@ if __name__ == "__main__":
         db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
         db_cursor = db_conn.cursor()
     except Exception as e:
-        print(e.what())
+        print(e)
         print("Fail to connect to server")
 
     s = connector()
