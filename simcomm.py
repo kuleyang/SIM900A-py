@@ -112,7 +112,9 @@ if __name__ == "__main__":
 
     while True:
         receive_queue = s.receive()
+        print(receive_queue)
         send_queue = dbconn.query_send()
+        print(send_queue)
 
         if receive_queue:
             #Received Message
@@ -129,5 +131,5 @@ if __name__ == "__main__":
                 else:
                     print("Fail to Send: " + str(eachMessage))
 
-        conn.commit()
+        db_conn.commit()
         time.sleep(5)
