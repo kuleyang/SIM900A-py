@@ -5,11 +5,13 @@ import time
 import binascii
 import mysql
 from mysql import connector
+import logging
 
 import dbconn
 
-class connector:
+class connector(object):
     def __init__(self, port = "/dev/ttyUSB0", bound = 115200, timeout = 1):
+        self.logger = logging.getLogger()
         try:
             self.se = serial.Serial(port, bound,
                 timeout = timeout,
@@ -17,7 +19,8 @@ class connector:
                 stopbits = serial.STOPBITS_ONE,
                 bytesize = serial.EIGHTBITS)
         except:
-            print("Fail to open device " + port)
+            print("Fail to open device " + port + "\nAre you ROOT?")
+            logger.critical("Fail to open device " + port)
             exit()
 
         self.se.write("AT\r\n".encode())
@@ -29,22 +32,25 @@ class connector:
         self.se.write("AT+CPIN?\r\n".encode())
         time.sleep(0.2)
         if self.se.readall().decode("utf8").find("READY") < 0:
-            print("SIM Init Fail, system exit")
+            logger.critical("SIM Init Fail, system exit")
             exit()
 
         self.se.write("AT+CMGF=1\r\n".encode())
         time.sleep(0.2)
         if self.se.readall().decode("utf8").find("OK") < 0:
-            print("SIM Init Fail, system exit")
+            logger.critical("SIM Init Fail, system exit")
             exit()
 
         self.se.write("AT+CSCS=\"UCS2\"\r\n".encode())
         self.se.write("AT+GSMBUSY=1\r\n".encode())
         time.sleep(0.2)
         if self.se.readall().decode("utf8").find("ERROR") > -1:
-            print("SIM Init Fail, system exit")
+            logger.critical("SIM Init Fail, system exit")
             exit()
 
+    def __del__(self):
+        self.se.close()
+        logger.info("Serial Port Close")
 
     def send(self, phone = "10086", message = "Nothing"):
         self.se.flushInput()
@@ -62,7 +68,7 @@ class connector:
         ret = self.se.readall()
         if ret.decode("utf8").find('OK') > 0:
             return True
-        print("Send Fail, Trace:[  " + ret + "  ]")
+        logger.error("Send Fail, Trace:[  " + ret + "  ]")
         return False
 
     def receive(self, delete = True):
@@ -70,6 +76,8 @@ class connector:
         self.se.write("AT+CMGL=\"ALL\"\r\n".encode())
         time.sleep(0.1)
         cmgl = self.se.readall()
+
+        # print(cmgl)
 
         msgs = []
         for eachMsg in cmgl.split(b"\r\n\r\n"):
@@ -94,42 +102,60 @@ class connector:
             self.se.flushInput()
         return msgs
 
-    def __del__(self):
-        self.se.close()
+
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger()
+    logfile = "sms.log"
+    handler = logging.FileHandler(logfile)
+    formatter =  logging.Formatter('[%(asctime)s][%(levelname)s]: %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    logger.setLevel(logging.INFO)
+
     try:
-        db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'uniquestudio')
+        db_conn = mysql.connector.connect(host = 'localhost', user = 'root', password = 'ow02mt')
         db_cursor = db_conn.cursor()
     except Exception as e:
         print(e)
         print("Fail to connect to server")
+        logger.error("Fail to connect to mysql server: " + str(e))
+        exit(0)
 
+    logger.info("Connect Established")
     s = connector()
 
     print("Init Finished")
+    logger.info("Init Finished")
 
     while True:
+        logger.debug("New Round")
         receive_queue = s.receive()
-        print(receive_queue)
+        # print("Recv: " + str(receive_queue))
+        logger.debug("receive queue: len " + str(len(receive_queue)))
         send_queue = dbconn.query_send(db_cursor)
-        print(send_queue)
+        #print("Send: " + str(send_queue))
+        logger.debug("send queue: len " + str(len(send_queue)))
 
         if receive_queue:
             #Received Message
             for eachMessage in receive_queue:
-                dbconn.insert_recv(db_cursor, **eachMessage)
-                print("Message Received: " + str(eachMessage))
+                dbconn.insert_recv(db_cursor, eachMessage)
+                # print("Message Received: " + str(eachMessage))
+                logger.info("SMS Received: " + str(eachMessage))
 
         if send_queue:
             for eachMessage in send_queue:
                 stat = s.send(eachMessage[1], eachMessage[2])
                 if stat:
-                    print("Success Send: " + str(eachMessage))
+                    # print("Success Send: " + str(eachMessage))
+                    logger.info("SMS Send Successful: " + str(eachMessage))
                     dbconn.confirm_send(db_cursor, eachMessage, str(time.time()).split('.')[0])
                 else:
-                    print("Fail to Send: " + str(eachMessage))
+                    # print("Fail to Send: " + str(eachMessage))
+                    logger.warn("SMS Send Fail! Message:" + str(eachMessage))
 
         db_conn.commit()
         time.sleep(5)

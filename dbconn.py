@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import mysql
 from mysql import connector
 import time
@@ -30,7 +31,8 @@ def confirm_send(db_cursor, sms, time):
 
     return True
 
-def insert_recv(db_cursor, phone, time, message):
+def insert_recv(db_cursor, sms):
+    phone, time, message = sms
     try:
         db_cursor.execute("INSERT INTO sms.toread (phone, message, time) VALUES (%s, %s, %s)", (phone, message, time))
     except Exception as e:

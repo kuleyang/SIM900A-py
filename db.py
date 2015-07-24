@@ -63,7 +63,7 @@ def test():
 
 
 if __name__ == '__main__':
-    conn = mysql.connector.connect(host='localhost', user='root', password='uniquestudio')
+    conn = mysql.connector.connect(host='localhost', user='root', password='ow02mt')
     cursor = conn.cursor()
 
     try:
