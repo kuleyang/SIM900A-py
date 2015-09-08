@@ -156,6 +156,8 @@ if __name__ == "__main__":
                 else:
                     # print("Fail to Send: " + str(eachMessage))
                     logger.warn("SMS Send Fail! Message:" + str(eachMessage))
+                # in case isp stop service
+                time.sleep(5)
 
         db_conn.commit()
         time.sleep(5)
